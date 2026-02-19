@@ -1,20 +1,31 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use crate::domain::signing::{SignerRole, SigningState};
+use once_cell::sync::Lazy;
 
-lazy_static::lazy_static! {
-    static ref REGISTRY: Mutex<HashMap<String, SigningState>> =
-        Mutex::new(HashMap::new());
+use crate::domain::signing::SigningState;
+
+/// Global in-memory signing registry (Phase 1 only)
+static REGISTRY: Lazy<Mutex<HashMap<String, SigningState>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+/// Get existing signing state or create a new one
+pub fn get_or_create(escrow_id: &str) -> SigningState {
+    let mut registry = REGISTRY
+        .lock()
+        .expect("signing registry mutex poisoned");
+
+    registry
+        .entry(escrow_id.to_string())
+        .or_insert_with(|| SigningState::new(escrow_id.to_string()))
+        .clone()
 }
 
-pub fn record_signature(escrow_id: &str, role: SignerRole) -> SigningState {
-    let mut map = REGISTRY.lock().unwrap();
+/// Save updated signing state
+pub fn save(escrow_id: &str, state: SigningState) {
+    let mut registry = REGISTRY
+        .lock()
+        .expect("signing registry mutex poisoned");
 
-    let state = map
-        .entry(escrow_id.to_string())
-        .or_insert_with(|| SigningState::new(escrow_id.to_string()));
-
-    state.add_signature(role.clone());
-    state.clone()
+    registry.insert(escrow_id.to_string(), state);
 }

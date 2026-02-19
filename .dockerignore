@@ -1,0 +1,14 @@
+# Build artifacts
+target/
+**/*.rs.bk
+
+# Git
+.git
+.gitignore
+
+# Environment variables
+.env
+
+# Editor
+.vscode
+.idea

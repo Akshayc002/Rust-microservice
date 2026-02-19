@@ -1,12 +1,17 @@
-use axum::{Router, routing::post, Json, http::StatusCode};
+use axum::{
+    Json,
+    http::StatusCode,
+    routing::post,
+    Router,
+};
 use serde::{Deserialize, Serialize};
-use bitcoin::PublicKey;
 
-use crate::bitcoin::psbt_verify;
+use crate::bitcoin::psbt_verify::verify_2of3_psbt;
 use crate::bitcoin::signing_registry;
 use crate::domain::signing::SignerRole;
 
-#[derive(Deserialize)]
+/// ===== Request =====
+#[derive(Debug, Deserialize)]
 pub struct SubmitSignedPsbtRequest {
     pub escrow_id: String,
     pub signer_role: String,
@@ -17,62 +22,57 @@ pub struct SubmitSignedPsbtRequest {
     pub escrow_pubkey: String,
 }
 
-#[derive(Serialize)]
+/// ===== Response =====
+#[derive(Debug, Serialize)]
 pub struct SubmitSignedPsbtResponse {
     pub status: String,
+    pub escrow_state: String,
     pub signatures_collected: usize,
 }
 
-#[derive(Serialize)]
-pub struct ErrorResponse {
-    pub error: String,
-}
-
-fn parse_role(role: &str) -> Option<SignerRole> {
-    match role {
-        "BORROWER" => Some(SignerRole::Borrower),
-        "LENDER" => Some(SignerRole::Lender),
-        "ESCROW" => Some(SignerRole::Escrow),
-        _ => None,
-    }
-}
-
+/// ===== Routes =====
 pub fn routes() -> Router {
-    Router::new().route("/psbt/submit-signed", post(submit_signed))
+    Router::new()
+        .route("/psbt/submit-signed", post(submit_signed_psbt))
 }
 
-async fn submit_signed(
-    Json(req): Json<SubmitSignedPsbtRequest>
-) -> Result<Json<SubmitSignedPsbtResponse>, (StatusCode, Json<ErrorResponse>)> {
+/// ===== Handler =====
+pub async fn submit_signed_psbt(
+    Json(req): Json<SubmitSignedPsbtRequest>,
+) -> Result<Json<SubmitSignedPsbtResponse>, StatusCode> {
 
-    let role = parse_role(&req.signer_role)
-        .ok_or((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse { error: "Invalid signer role".into() })
-        ))?;
+    // ---- Parse signer role ----
+    let role = match req.signer_role.as_str() {
+        "BORROWER" => SignerRole::Borrower,
+        "LENDER" => SignerRole::Lender,
+        "ESCROW" => SignerRole::Escrow,
+        _ => return Err(StatusCode::BAD_REQUEST),
+    };
 
-    let pubkeys = vec![
-        req.borrower_pubkey.parse::<PublicKey>(),
-        req.lender_pubkey.parse::<PublicKey>(),
-        req.escrow_pubkey.parse::<PublicKey>(),
-    ]
-    .into_iter()
-    .collect::<Result<Vec<_>, _>>()
-    .map_err(|_| (
-        StatusCode::BAD_REQUEST,
-        Json(ErrorResponse { error: "Invalid public key".into() })
-    ))?;
+    // ---- Parse public keys ----
+    let borrower_pk = req.borrower_pubkey.parse().map_err(|_| StatusCode::BAD_REQUEST)?;
+    let lender_pk = req.lender_pubkey.parse().map_err(|_| StatusCode::BAD_REQUEST)?;
+    let escrow_pk = req.escrow_pubkey.parse().map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    // Structural verification (no crypto sighash yet)
-    psbt_verify::verify_2of3_psbt(&req.psbt_base64, &pubkeys)
-        .map_err(|e| (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse { error: format!("{:?}", e) })
-        ))?;
+    let allowed_keys = vec![borrower_pk, lender_pk, escrow_pk];
 
-    let state = signing_registry::record_signature(&req.escrow_id, role);
+    // ---- Verify PSBT (Phase 1: structural + signer validation) ----
+    verify_2of3_psbt(&req.psbt_base64, &allowed_keys)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let status = if state.is_approved() {
+    // ---- Load or create signing state ----
+    let mut state = signing_registry::get_or_create(&req.escrow_id);
+
+    // ---- Apply signature ----
+    state.add_signature(role);
+
+    let approved = state.is_approved();
+
+    // ---- Persist updated state ----
+    signing_registry::save(&req.escrow_id, state.clone());
+
+    // ---- Build response ----
+    let status = if approved {
         "APPROVED"
     } else {
         "PARTIALLY_SIGNED"
@@ -80,6 +80,7 @@ async fn submit_signed(
 
     Ok(Json(SubmitSignedPsbtResponse {
         status: status.to_string(),
+        escrow_state: format!("{:?}", state.state),
         signatures_collected: state.signed_roles.len(),
     }))
 }

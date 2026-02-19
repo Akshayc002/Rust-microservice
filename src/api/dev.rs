@@ -46,7 +46,7 @@ async fn sign_psbt(
         )),
     };
 
-    let bytes = base64::decode(req.psbt_base64)
+    let bytes = base64::engine::general_purpose::STANDARD.decode(req.psbt_base64)
         .map_err(|_| (
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse { error: "Invalid base64".into() })

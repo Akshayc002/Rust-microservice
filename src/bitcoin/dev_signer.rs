@@ -1,11 +1,14 @@
-﻿use bitcoin::{
+use bitcoin::{
     psbt::Psbt,
     secp256k1::{Secp256k1, Message},
     EcdsaSighashType,
+    sighash::SighashCache,
 };
+use bitcoin::hashes::Hash;
 use crate::bitcoin::dev_keys::DevRole;
 
-/// ⚠️ STRUCTURAL signing only (DEV)
+/// ⚠️ REAL SIGNING (DEV ONLY)
+/// Signs the PSBT correctly so it can be broadcast on Regtest
 pub fn sign_psbt_dev(
     mut psbt: Psbt,
     role: DevRole,
@@ -13,20 +16,34 @@ pub fn sign_psbt_dev(
     let secp = Secp256k1::new();
     let (sk, pk) = crate::bitcoin::dev_keys::dev_keypair(role);
 
-    // ⚠️ Fake message (DEV ONLY)
-    // This is NOT real Bitcoin signing
-    let msg = Message::from_slice(&[1u8; 32]).unwrap();
+    // Extract the unsigned transaction to sign
+    let unsigned_tx = psbt.unsigned_tx.clone();
+    let mut sighasher = SighashCache::new(&unsigned_tx);
 
-    let sig = secp.sign_ecdsa(&msg, &sk);
+    for (i, input) in psbt.inputs.iter_mut().enumerate() {
+        // We need the witness script (redeem script for P2WSH)
+        if let Some(witness_script) = &input.witness_script {
+            // Calculate Sighash
+            let sighash = sighasher.p2wsh_signature_hash(
+                i,
+                witness_script,
+                input.witness_utxo.as_ref().unwrap().value,
+                EcdsaSighashType::All,
+            ).expect("failed to create sighash");
 
-    for input in psbt.inputs.iter_mut() {
-        input.partial_sigs.insert(
-            pk,
-            bitcoin::ecdsa::Signature {
-                sig,
-                hash_ty: EcdsaSighashType::All,
-            },
-        );
+            // Sign
+            let msg = Message::from_digest(sighash.to_byte_array());
+            let sig = secp.sign_ecdsa(&msg, &sk);
+
+            // Insert Partial Signature
+            input.partial_sigs.insert(
+                pk,
+                bitcoin::ecdsa::Signature {
+                    sig,
+                    hash_ty: EcdsaSighashType::All,
+                },
+            );
+        }
     }
 
     psbt
