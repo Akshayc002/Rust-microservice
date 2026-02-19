@@ -1,0 +1,48 @@
+    Checking linkbit-bitcoin-escrow v0.1.0 (C:\Users\Aksha\source\repos\Rust-microservice)
+error[E0382]: borrow of moved value: `pool`
+  --> src\main.rs:48:22
+   |
+26 |     let pool = db::get_pool()
+   |         ---- move occurs because `pool` has type `Pool<Postgres>`, which does not implement the `Copy` trait
+...
+30 |     let _state = AppState { db: pool };
+   |                                 ---- value moved here
+...
+48 |     let pool_clone = pool.clone();
+   |                      ^^^^ value borrowed here after move
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+30 |     let _state = AppState { db: pool.clone() };
+   |                                     ++++++++
+
+error: future cannot be sent between threads safely
+   --> src\main.rs:49:5
+    |
+ 49 | /     tokio::spawn(async move {
+ 50 | |         tracing::info!("🕒 Scheduler started");
+ 51 | |         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
+ 52 | |         loop {
+...   |
+ 78 | |     });
+    | |______^ future created by async block is not `Send`
+    |
+    = help: the trait `std::marker::Send` is not implemented for `dyn StdError`
+note: future is not `Send` as this value is used across an await
+   --> src\loans\oracle.rs:88:48
+    |
+ 87 |     let kraken_result = fetch_kraken_price().await;
+    |         ------------- has type `Result<OraclePrice, Box<dyn StdError>>` which is not `Send`
+ 88 |     let binance_result = fetch_binance_price().await;
+    |                                                ^^^^^ await occurs here, with `kraken_result` maybe used later
+note: required by a bound in `tokio::spawn`
+   --> C:\Users\Aksha\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tokio-1.49.0\src\task\spawn.rs:171:21
+    |
+169 |     pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+    |            ----- required by a bound in this function
+170 |     where
+171 |         F: Future + Send + 'static,
+    |                     ^^^^ required by this bound in `spawn`
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `linkbit-bitcoin-escrow` (bin "linkbit-bitcoin-escrow") due to 2 previous errors

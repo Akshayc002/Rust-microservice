@@ -1,0 +1,112 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.07s
+warning: the following packages contain code that will be rejected by a future version of Rust: sqlx-postgres v0.7.4
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src\main.rs (target\debug\deps\linkbit_bitcoin_escrow-e3a705d5ea6e6e5e.exe)
+
+running 24 tests
+test bitcoin::regtest_flow_tests::tests::test_full_escrow_lifecycle_on_regtest ... ignored, Requires running Bitcoin Regtest node
+test bitcoin::psbt_tests::test_add_signature_merge ... ok
+test bitcoin::multisig_tests::creates_valid_2of3_multisig ... FAILED
+test bitcoin::psbt_tests::test_create_psbt_invalid_hex ... ok
+test bitcoin::multisig_tests::creates_deterministic_multisig ... FAILED
+test bitcoin::rpc_tests::test_rpc_compilation ... ok
+test bitcoin::transaction_tests::test_build_repayment_tx_insufficient_funds ... FAILED
+test bitcoin::psbt_verify_tests::test_extract_tx_fail_incomplete ... ok
+test bitcoin::transaction_tests::test_build_repayment_tx_success ... FAILED
+test bitcoin::validation_tests::test_funding_status_confirmed ... FAILED
+test bitcoin::validation_tests::test_funding_status_pending ... FAILED
+test bitcoin::validation_tests::test_funding_status_underfunded ... FAILED
+test bitcoin::validation_tests::test_funding_status_wrong_address ... FAILED
+test bitcoin::validation_tests::test_validate_invalid_pubkey ... ok
+test bitcoin::validation_tests::test_validate_signed_tx_fee_too_high ... FAILED
+test bitcoin::validation_tests::test_validate_signed_tx_success ... FAILED
+test api::psbt_submit_tests::submit_signed_psbt_approves_on_second_signer ... ok
+test api::psbt_submit_tests::submit_signed_psbt_rejects_invalid_role ... ok
+test api::psbt_submit_tests::submit_signed_psbt_accepts_first_signer ... ok
+test bitcoin::validation_tests::test_validate_signed_tx_wrong_output ... FAILED
+test bitcoin::validation_tests::test_validate_valid_pubkey ... FAILED
+test bitcoin::psbt_verify_tests::rejects_unknown_signer ... ok
+test domain::signing_tests::approves_only_when_exactly_two_signers ... ok
+test domain::signing_tests::duplicate_signer_does_not_unlock_escrow ... ok
+
+failures:
+
+---- bitcoin::multisig_tests::creates_valid_2of3_multisig stdout ----
+
+thread 'bitcoin::multisig_tests::creates_valid_2of3_multisig' (23788) panicked at src\bitcoin\multisig_tests.rs:7:18:
+called `Result::unwrap()` on an `Err` value: InvalidHexLength(64)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- bitcoin::multisig_tests::creates_deterministic_multisig stdout ----
+
+thread 'bitcoin::multisig_tests::creates_deterministic_multisig' (39684) panicked at src\bitcoin\multisig_tests.rs:23:18:
+called `Result::unwrap()` on an `Err` value: InvalidHexLength(64)
+
+---- bitcoin::transaction_tests::test_build_repayment_tx_insufficient_funds stdout ----
+
+thread 'bitcoin::transaction_tests::test_build_repayment_tx_insufficient_funds' (31924) panicked at src\bitcoin\transaction_tests.rs:45:89:
+called `Result::unwrap()` on an `Err` value: Base58(BadByte(48))
+
+---- bitcoin::transaction_tests::test_build_repayment_tx_success stdout ----
+
+thread 'bitcoin::transaction_tests::test_build_repayment_tx_success' (18576) panicked at src\bitcoin\transaction_tests.rs:9:89:
+called `Result::unwrap()` on an `Err` value: Base58(BadByte(48))
+
+---- bitcoin::validation_tests::test_funding_status_confirmed stdout ----
+
+thread 'bitcoin::validation_tests::test_funding_status_confirmed' (40664) panicked at src\bitcoin\validation_tests.rs:25:85:
+called `Result::unwrap()` on an `Err` value: Base58(BadByte(48))
+
+---- bitcoin::validation_tests::test_funding_status_pending stdout ----
+
+thread 'bitcoin::validation_tests::test_funding_status_pending' (4088) panicked at src\bitcoin\validation_tests.rs:42:85:
+called `Result::unwrap()` on an `Err` value: Base58(BadByte(48))
+
+---- bitcoin::validation_tests::test_funding_status_underfunded stdout ----
+
+thread 'bitcoin::validation_tests::test_funding_status_underfunded' (33104) panicked at src\bitcoin\validation_tests.rs:59:85:
+called `Result::unwrap()` on an `Err` value: Base58(BadByte(48))
+
+---- bitcoin::validation_tests::test_funding_status_wrong_address stdout ----
+
+thread 'bitcoin::validation_tests::test_funding_status_wrong_address' (12748) panicked at src\bitcoin\validation_tests.rs:76:85:
+called `Result::unwrap()` on an `Err` value: Base58(BadByte(48))
+
+---- bitcoin::validation_tests::test_validate_signed_tx_fee_too_high stdout ----
+
+thread 'bitcoin::validation_tests::test_validate_signed_tx_fee_too_high' (39316) panicked at src\bitcoin\validation_tests.rs:113:85:
+called `Result::unwrap()` on an `Err` value: Base58(BadByte(48))
+
+---- bitcoin::validation_tests::test_validate_signed_tx_success stdout ----
+
+thread 'bitcoin::validation_tests::test_validate_signed_tx_success' (25000) panicked at src\bitcoin\validation_tests.rs:95:85:
+called `Result::unwrap()` on an `Err` value: Base58(BadByte(48))
+
+---- bitcoin::validation_tests::test_validate_signed_tx_wrong_output stdout ----
+
+thread 'bitcoin::validation_tests::test_validate_signed_tx_wrong_output' (39124) panicked at src\bitcoin\validation_tests.rs:131:85:
+called `Result::unwrap()` on an `Err` value: Base58(BadByte(48))
+
+---- bitcoin::validation_tests::test_validate_valid_pubkey stdout ----
+
+thread 'bitcoin::validation_tests::test_validate_valid_pubkey' (41384) panicked at src\bitcoin\validation_tests.rs:9:5:
+assertion failed: result.is_ok()
+
+
+failures:
+    bitcoin::multisig_tests::creates_deterministic_multisig
+    bitcoin::multisig_tests::creates_valid_2of3_multisig
+    bitcoin::transaction_tests::test_build_repayment_tx_insufficient_funds
+    bitcoin::transaction_tests::test_build_repayment_tx_success
+    bitcoin::validation_tests::test_funding_status_confirmed
+    bitcoin::validation_tests::test_funding_status_pending
+    bitcoin::validation_tests::test_funding_status_underfunded
+    bitcoin::validation_tests::test_funding_status_wrong_address
+    bitcoin::validation_tests::test_validate_signed_tx_fee_too_high
+    bitcoin::validation_tests::test_validate_signed_tx_success
+    bitcoin::validation_tests::test_validate_signed_tx_wrong_output
+    bitcoin::validation_tests::test_validate_valid_pubkey
+
+test result: FAILED. 11 passed; 12 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin linkbit-bitcoin-escrow`

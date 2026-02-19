@@ -6,11 +6,18 @@ use bitcoin::{
 };
 
 pub fn create_2of3_multisig(
-    keys: Vec<PublicKey>,
+    mut keys: Vec<PublicKey>,
     network: Network
 ) -> (Address, ScriptBuf) {
 
     assert_eq!(keys.len(), 3);
+
+    // Sort keys to ensure deterministic script generation regardless of input order
+    keys.sort_by_key(|k| k.to_string());
+    // Note: PublicKey implements Ord/PartialOrd based on compressed byte representation usually,
+    // but to_string() (hex) is also a stable deterministic sort.
+    // Ideally we sort by compressed bytes.
+    // keys.sort(); // PublicKey implements Ord in recent bitcoin versions.
 
     let redeem_script = Builder::new()
         .push_int(2)

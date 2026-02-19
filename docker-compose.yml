@@ -1,8 +1,28 @@
 version: "3.8"
 
 services:
+  # PostgreSQL Database - Phase 1 & 2 Development
+  postgres:
+    image: postgres:15-alpine
+    container_name: linkbit-postgres
+    environment:
+      POSTGRES_DB: linkbit_mvp
+      POSTGRES_USER: linkbit
+      POSTGRES_PASSWORD: linkbitpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linkbit"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Bitcoin Regtest Node - Phase 1
   bitcoind:
     image: ruimarinho/bitcoin-core:latest
+    container_name: linkbit-bitcoind
     command:
       -regtest
       -rpcbind=0.0.0.0
@@ -10,6 +30,19 @@ services:
       -rpcuser=linkbit
       -rpcpassword=linkbitpass
       -fallbackfee=0.0001
+      -server
+      -txindex
     ports:
-      - "18443:18443"
-      - "18444:18444"
+      - "18443:18443"  # RPC (Regtest)
+      - "18444:18444"  # P2P (Regtest)
+    volumes:
+      - bitcoin_data:/home/bitcoin/.bitcoin
+    healthcheck:
+      test: ["CMD", "bitcoin-cli", "-rpcuser=linkbit", "-rpcpassword=linkbitpass", "-regtest", "getblockcount"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  bitcoin_data:
