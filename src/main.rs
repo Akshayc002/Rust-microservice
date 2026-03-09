@@ -80,9 +80,11 @@ async fn main() {
                 Ok(active_loans) => {
                     tracing::info!("🔎 Checking {} active loans for margin calls", active_loans.len());
                     for loan in active_loans {
-                        match loans::oracle::calculate_required_collateral(&pool_clone, loan.principal_satoshis, loan.ltv_ratio).await {
-                            Ok(required) => {
-                                tracing::info!("💰 Loan {}: Principal={} sats, Required Collateral={} sats", loan.id, loan.principal_satoshis, required);
+                                let principal = loan.principal_amount.unwrap_or(0.0);
+                                let ltv = loan.margin_call_ltv_percent.unwrap_or(0.0) as i32;
+                                match loans::oracle::calculate_required_collateral(&pool_clone, (principal * 1000000.0) as i64, ltv).await {
+                                    Ok(required) => {
+                                        tracing::info!("💰 Loan {}: Principal={} (fiat), Required Collateral={} sats", loan.id, principal, required);
                                 // Here we would compare with actual collateral
                             },
                             Err(e) => tracing::error!("❌ Failed to calc collateral for loan {}: {}", loan.id, e),
